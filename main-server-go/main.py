@@ -1,5 +1,5 @@
-import sys
 import random
+import sys
 from fastapi import FastAPI
 
 app = FastAPI()
@@ -18,6 +18,7 @@ def read_item():
 @app.get("/exc")
 async def root():
     sys.exit("Exiting the application")
+
 
 if __name__ == "__main__":
     import uvicorn

@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"strconv"
 )
 
 type Response struct {
@@ -35,27 +36,45 @@ func MakeRequest() Response {
 	var result map[string]interface{}
 
 	json.NewDecoder(resp.Body).Decode(&result)
+	num, ok := result["number"].(float64)
+	if !ok {
+		log.Fatalln(err)
+	}
 	response := Response{
-		Message: result["number"].(string),
+		Message: strconv.FormatFloat(num, 'f', -1, 64),
+	}
+	return response
+}
+func OutServer() Response {
+
+	resp, err := http.Get("http://localhost:8001/exc")
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	var result map[string]interface{}
+
+	json.NewDecoder(resp.Body).Decode(&result)
+	txt, ok := result["number"].(float64)
+	if !ok {
+		log.Fatalln(err)
+	}
+	response := Response{
+		Message: strconv.FormatFloat(txt, 'f', -1, 64),
 	}
 	return response
 }
 func main() {
-	/*
-		destURL, err := url.Parse("http://localhost:8001")
-		if err != nil {
-			log.Fatal("Ошибка при разборе URL назначения:", err)
-		}
-		proxy := httputil.NewSingleHostReverseProxy(destURL)
-	*/
 	http.HandleFunc("/rand", func(w http.ResponseWriter, r *http.Request) {
-		// log.Println("Переадресация запроса:", r.URL.Path)
-		// proxy.ServeHTTP(w, r)
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(MakeRequest())
 
 	})
+	http.HandleFunc("/out", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(OutServer())
 
+	})
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if run_sub_server() {
 			response := Response{
