@@ -4,8 +4,6 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
-	"net/http/httputil"
-	"net/url"
 	"os"
 	"os/exec"
 )
@@ -27,22 +25,37 @@ func run_sub_server() bool {
 	return true
 }
 
-/*
-func get_number_from_sub_api(response string) int {
+func MakeRequest() Response {
 
-}
-*/
-func main() {
-	destURL, err := url.Parse("http://localhost:8001")
+	resp, err := http.Get("http://localhost:8001/rand")
 	if err != nil {
-		log.Fatal("Ошибка при разборе URL назначения:", err)
+		log.Fatalln(err)
 	}
-	proxy := httputil.NewSingleHostReverseProxy(destURL)
 
+	var result map[string]interface{}
+
+	json.NewDecoder(resp.Body).Decode(&result)
+	response := Response{
+		Message: result["number"].(string),
+	}
+	return response
+}
+func main() {
+	/*
+		destURL, err := url.Parse("http://localhost:8001")
+		if err != nil {
+			log.Fatal("Ошибка при разборе URL назначения:", err)
+		}
+		proxy := httputil.NewSingleHostReverseProxy(destURL)
+	*/
 	http.HandleFunc("/rand", func(w http.ResponseWriter, r *http.Request) {
-		log.Println("Переадресация запроса:", r.URL.Path)
-		proxy.ServeHTTP(w, r)
+		// log.Println("Переадресация запроса:", r.URL.Path)
+		// proxy.ServeHTTP(w, r)
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(MakeRequest())
+
 	})
+
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if run_sub_server() {
 			response := Response{
@@ -59,6 +72,7 @@ func main() {
 		}
 
 	})
+
 	log.Println("Server listening on port 8080...")
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
